@@ -10,22 +10,19 @@ type CalculatorServicer interface {
 }
 
 type CalculatorService struct {
-	points [][]float64
+	prevPoint []float64
 }
 
 func NewCalculatorService() CalculatorServicer {
-	return &CalculatorService{
-		points: make([][]float64, 0),
-	}
+	return &CalculatorService{}
 }
 
 func (cs *CalculatorService) CalculateDistance(data types.OBUData) (float64, error) {
 	distance := 0.0
-	if len(cs.points) > 0 {
-		prevPoint := cs.points[len(cs.points)-1]
-		distance = calculateDistance(prevPoint[0], prevPoint[1], data.Lat, data.Long)
+	if len(cs.prevPoint) > 0 {
+		distance = calculateDistance(cs.prevPoint[0], cs.prevPoint[1], data.Lat, data.Long)
 	}
-	cs.points = append(cs.points, []float64{data.Lat, data.Long})
+	cs.prevPoint = []float64{data.Long, data.Lat}
 	return distance, nil
 }
 

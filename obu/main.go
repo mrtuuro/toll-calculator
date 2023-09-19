@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	sendInterval = time.Second
+	sendInterval = time.Second * 5
 )
 
 func genLatLong() (float64, float64) {
@@ -29,7 +29,7 @@ func genCoord() float64 {
 }
 
 func main() {
-	obuIDs := generateOBUIDs(20)
+	obuIDs := generateOBUIDs(1)
 	conn, _, err := websocket.DefaultDialer.Dial(wsEndpoint, nil)
 	if err != nil {
 		log.Fatal(err)
