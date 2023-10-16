@@ -1,28 +1,94 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"google.golang.org/grpc"
+	"log"
+	"net"
 	"net/http"
+	"strconv"
+	"time"
+	"toll-calculator/aggregator/client"
 	"toll-calculator/types"
 )
 
 func main() {
-	listenAddr := flag.String("listenaddr", ":3000", "the listen address of the HTTP server")
+	httpListenAddr := flag.String("httpAddr", ":3000", "the listen address of the HTTP server")
+	grpcListenAddr := flag.String("grpcAddr", ":3001", "the listen address of the gRPC server")
 	flag.Parse()
 
-	store := NewMemoryStore()
-	svc := NewInvoiceAggregator(store)
+	var (
+		store = NewMemoryStore()
+		svc   = NewInvoiceAggregator(store)
+	)
 	svc = NewLogMiddleware(svc)
 
-	makeHTTPTransport(*listenAddr, svc)
+	go func() {
+		log.Fatal(makeGRPCTransport(*grpcListenAddr, svc))
+	}()
+	time.Sleep(time.Second * 2)
+	c, err := client.NewGRPCClient(*grpcListenAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if _, err := c.Aggregate(context.Background(), &types.AggregateRequest{
+		ObuID: 1,
+		Value: 58.55,
+		Unix:  time.Now().UnixNano(),
+	}); err != nil {
+		log.Fatal(err)
+	}
+
+	log.Fatal(makeHTTPTransport(*httpListenAddr, svc))
 }
 
-func makeHTTPTransport(listenAddr string, svc Aggregator) {
+func makeGRPCTransport(listenAddr string, svc Aggregator) error {
+	fmt.Println("gRPC transport running on port", listenAddr)
+	// TODO Make a TCP listeners
+	ln, err := net.Listen("tcp", listenAddr)
+	if err != nil {
+		return err
+	}
+
+	defer ln.Close()
+	// TODO Make a new GRPC native server with (options)
+	server := grpc.NewServer([]grpc.ServerOption{}...)
+
+	// TODO Register (OUR) GRPC server implementation to the GRPC package.
+	types.RegisterAggregatorServer(server, NewGRPCAggregatorServer(svc))
+	return server.Serve(ln)
+}
+
+func makeHTTPTransport(listenAddr string, svc Aggregator) error {
 	fmt.Println("HTTP transport running on port", listenAddr)
 	http.HandleFunc("/aggregate", handleAggregate(svc))
-	http.ListenAndServe(listenAddr, nil)
+	http.HandleFunc("/invoice", handleGetInvoice(svc))
+	return http.ListenAndServe(listenAddr, nil)
+}
+
+func handleGetInvoice(svc Aggregator) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		values, ok := r.URL.Query()["obu"]
+		if !ok {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "missing OBU ID !"})
+			return
+		}
+		obuID, err := strconv.Atoi(values[0])
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid OBU ID"})
+			return
+		}
+		invoice, err := svc.CalculateInvoice(obuID)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+
+			return
+		}
+		writeJSON(w, http.StatusOK, invoice)
+	}
 }
 
 func handleAggregate(svc Aggregator) http.HandlerFunc {
