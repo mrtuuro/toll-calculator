@@ -1,3 +1,7 @@
+gate:
+	@go build -o bin/gate gateway/main.go
+	@./bin/gate
+
 obu2:
 	@go build -o bin/obu ./obu
 	@./bin/obu
