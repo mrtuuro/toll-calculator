@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"toll-calculator/types"
 )
@@ -24,6 +25,7 @@ func (c *HTTPClient) Aggregate(ctx context.Context, aggReq *types.AggregateReque
 	if err != nil {
 		return err
 	}
+
 	req, err := http.NewRequest("POST", c.Endpoint+"/aggregate", bytes.NewReader(b))
 	if err != nil {
 		return err
@@ -47,7 +49,11 @@ func (c *HTTPClient) GetInvoice(ctx context.Context, id int) (*types.Invoice, er
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", c.Endpoint+"/invoice", bytes.NewReader(b))
+
+	endpoint := fmt.Sprintf("%s/%s?obu=%d", c.Endpoint, "invoice", id)
+	logrus.Info("requesting get invoice -> ", endpoint)
+
+	req, err := http.NewRequest("GET", endpoint, bytes.NewReader(b))
 	if err != nil {
 		return nil, err
 	}

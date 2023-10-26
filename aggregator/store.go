@@ -22,6 +22,7 @@ func (m *MemoryStore) Insert(distance types.Distance) error {
 
 func (m *MemoryStore) Get(id int) (float64, error) {
 	distance, ok := m.data[id]
+	fmt.Println("---||", m.data)
 	if !ok {
 		return 0.0, fmt.Errorf("could not find distance for obu id %d", id)
 	}

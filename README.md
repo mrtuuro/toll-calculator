@@ -104,3 +104,8 @@ go get google.golang.org/protobuf
 ```
 go get google.golang.org/grpc
 ```
+
+#### 5. Run Prometheus With Docker
+```
+docker run --name prometheus -d -p 127.0.0.1:9090:9090 prom/prometheus
+```

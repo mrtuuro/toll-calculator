@@ -84,7 +84,6 @@ func handleGetInvoice(svc Aggregator) http.HandlerFunc {
 		invoice, err := svc.CalculateInvoice(obuID)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-
 			return
 		}
 		writeJSON(w, http.StatusOK, invoice)
