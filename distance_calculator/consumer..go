@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
-	"time"
 	"toll-calculator/aggregator/client"
 	"toll-calculator/types"
 )
@@ -42,6 +43,10 @@ func (c *KafkaConsumer) Start() {
 	c.readMessageLoop()
 }
 
+func (c *KafkaConsumer) Close() {
+	c.isRunning = false
+}
+
 func (c *KafkaConsumer) readMessageLoop() {
 	for c.isRunning {
 		msg, err := c.consumer.ReadMessage(-1)
@@ -52,12 +57,20 @@ func (c *KafkaConsumer) readMessageLoop() {
 		var data types.OBUData
 		if err := json.Unmarshal(msg.Value, &data); err != nil {
 			logrus.Errorf("JSON serialization error: %s", err)
+			logrus.WithFields(logrus.Fields{
+				"err":       err,
+				"requestID": data.RequestID,
+			})
 			continue
 		}
 
 		distance, err := c.calcService.CalculateDistance(data)
 		if err != nil {
 			logrus.Errorf("calculation error: %s", err)
+			logrus.WithFields(logrus.Fields{
+				"err":       err,
+				"requestID": data.RequestID,
+			})
 			continue
 		}
 		req := &types.AggregateRequest{

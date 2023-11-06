@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/websocket"
 	"log"
+	"math"
+	"math/rand"
 	"net/http"
+
+	"github.com/gorilla/websocket"
 	"toll-calculator/types"
 )
 
@@ -68,6 +71,7 @@ func (dr *DataReceiver) wsReceiveLoop() {
 			log.Println("read error: ", err)
 			continue
 		}
+		data.RequestID = rand.Intn(math.MaxInt)
 		fmt.Println("received message: ", data)
 		if err := dr.produceData(data); err != nil {
 			fmt.Println("Kafka produce error: ", err)

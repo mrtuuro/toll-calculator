@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/websocket"
 	"log"
 	"math"
 	"math/rand"
 	"time"
+
+	"github.com/gorilla/websocket"
 	"toll-calculator/types"
 )
 
@@ -60,6 +61,5 @@ func generateOBUIDs(n int) []int {
 }
 
 func init() {
-
 	rand.Seed(time.Now().UnixNano())
 }
